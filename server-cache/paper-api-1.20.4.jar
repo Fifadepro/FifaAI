@@ -1,0 +1,6 @@
+{
+  "errors" : [ {
+    "status" : 404,
+    "message" : "Artifact not found: io/papermc/paper/paper-api/1.20.4-R0.1-SNAPSHOT/paper-api-1.20.4-R0.1-20240419.191638-422.jar; Path: 'universe:io/papermc/paper/paper-api/1.20.4-R0.1-SNAPSHOT/paper-api-1.20.4-R0.1-20240419.191638-422.jar'"
+  } ]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "FifaAI - Generator Pluginów Minecraft",
+  "description": "FifaAI - Nowoczesny generator pluginów Minecraft Paper/Spigot/Purpur z kompilacją .JAR w czasie rzeczywistym i podglądem kodu na żywo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
