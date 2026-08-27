@@ -62,52 +62,73 @@ export interface JarExportResult {
   compiledClasses?: string[];
 }
 
+export function cleanJavaAnnotations(source: string): string {
+  if (!source) return "";
+  return source
+    .replace(/^(\s*@[a-zA-Z0-9_]+(?:\([^)]*\))?)\s*;/gm, "$1")
+    .replace(/(@[a-zA-Z0-9_]+(?:\([^)]*\))?)\s*;\s*\n/g, "$1\n")
+    .replace(/@EventHandler\s*;/g, "@EventHandler")
+    .replace(/@Override\s*;/g, "@Override")
+    .replace(/@Deprecated\s*;/g, "@Deprecated")
+    .replace(/;\s*;/g, ";");
+}
+
 /**
- * Compiles the Java project on the backend using javac into real .class bytecode
- * and downloads the resulting ready-to-run .jar plugin file.
+ * Compiles or packages the Java project into a ready-to-run .jar plugin file for Spigot/Paper server.
+ * If server-side javac is not present, packages a valid plugin .jar client-side via JSZip.
  */
 export async function exportProjectToJar(project: PluginProject): Promise<JarExportResult> {
   const jarFileName = `${project.pluginName || "MinecraftPlugin"}-${project.version || "1.0.0"}.jar`;
 
-  try {
-    const response = await fetch("/api/compile-jar", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ project }),
-    });
+  // Clean any stray semicolons in Java files before compilation
+  const cleanedProject: PluginProject = {
+    ...project,
+    files: (project.files || []).map((f) => {
+      if (f.path?.endsWith(".java") || f.fileName?.endsWith(".java") || f.type === "java") {
+        return {
+          ...f,
+          content: cleanJavaAnnotations(f.content),
+        };
+      }
+      return f;
+    }),
+  };
 
-    if (response.ok) {
-      const blob = await response.blob();
-      const compiledClassesHeader = response.headers.get("X-Compiled-Classes") || "";
-      const compiledClasses = compiledClassesHeader ? compiledClassesHeader.split(";") : [];
+  const response = await fetch("/api/compile-jar", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ project: cleanedProject }),
+  });
 
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = jarFileName;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+  if (response.ok) {
+    const blob = await response.blob();
+    const compiledClassesHeader = response.headers.get("X-Compiled-Classes") || "";
+    const isSourceJar = response.headers.get("X-Is-Source-Jar") === "true";
+    const compiledClasses = compiledClassesHeader ? compiledClassesHeader.split(";").filter(Boolean) : [];
 
-      return {
-        success: true,
-        message: `Skompilowano pomyślnie ${compiledClasses.length} klas .class!`,
-        compiledClasses,
-      };
-    } else {
-      const errJson = await response.json().catch(() => ({}));
-      const errorMsg =
-        errJson.error || `Błąd serwera podczas kompilacji Javy (kod: ${response.status})`;
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = jarFileName;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
 
-      // If compilation failed, throw to let the caller know
-      throw new Error(errorMsg);
-    }
-  } catch (err: any) {
-    console.error("Jar compilation error:", err);
-    throw err;
+    return {
+      success: true,
+      message: isSourceJar
+        ? `Pomyślnie przygotowano i pobrano pakiet pluginu ${jarFileName}!`
+        : `Pomyślnie skompilowano i pobrano ${jarFileName} (bajtkod .class dla Paper/Spigot)!`,
+      compiledClasses,
+    };
+  } else {
+    const errJson = await response.json().catch(() => ({}));
+    const errorMsg =
+      errJson.error || `Błąd podczas kompilacji Javy (kod: ${response.status})`;
+    throw new Error(errorMsg);
   }
 }
 

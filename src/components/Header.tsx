@@ -87,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Terminal className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Symulator Gry</span>
+            <span>Symulator pluginu</span>
           </button>
 
           <button

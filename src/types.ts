@@ -27,6 +27,29 @@ export interface TestScenario {
   description?: string;
 }
 
+export interface GuiMenuItem {
+  slot: number;
+  material: string;
+  name: string;
+  amount?: number;
+  lore?: string[];
+  enchanted?: boolean;
+  actionKey?: string;
+  active?: boolean;
+  commandOnClick?: string;
+  targetMenuId?: string; // If this item opens a sub-category / another GUI
+}
+
+export interface GuiMenuDefinition {
+  id: string;
+  title: string;
+  rows: number; // 1 to 6
+  triggerCommand?: string;
+  parentMenuId?: string; // If this is a sub-category
+  categoryName?: string;
+  items: GuiMenuItem[];
+}
+
 export interface PluginProject {
   pluginName: string;
   packageName: string;
@@ -38,6 +61,7 @@ export interface PluginProject {
   permissions: PermissionInfo[];
   files: ProjectFile[];
   testScenarios?: TestScenario[];
+  guiMenus?: GuiMenuDefinition[];
 }
 
 export interface GenerationSettings {
@@ -49,11 +73,24 @@ export interface GenerationSettings {
   buildTool: "Maven" | "Gradle";
 }
 
+export interface MessageAttachment {
+  id: string;
+  name: string;
+  type: "image" | "code" | "log" | "config" | "document" | "other";
+  mimeType: string;
+  size: number;
+  base64?: string;
+  rawBase64?: string;
+  content?: string;
+  previewUrl?: string;
+}
+
 export interface ConversationMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: string;
+  attachments?: MessageAttachment[];
   projectSnapshot?: PluginProject;
   isStreaming?: boolean;
   rawStreamingCode?: string;
@@ -65,4 +102,15 @@ export interface ChatMessage {
   role: "player" | "console" | "system" | "plugin";
   text: string;
   timestamp: string;
+}
+
+export interface ConversationSession {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  messages: ConversationMessage[];
+  project: PluginProject;
+  settings: GenerationSettings;
+  activeFilePath?: string;
 }

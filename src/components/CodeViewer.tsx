@@ -16,8 +16,11 @@ import {
   Layers,
   Cpu,
   Zap,
+  PanelRightClose,
+  ChevronRight,
 } from "lucide-react";
 import { ProjectFile } from "../types";
+import { PluginCreationLoader } from "./PluginCreationLoader";
 
 interface CodeViewerProps {
   files: ProjectFile[];
@@ -27,6 +30,8 @@ interface CodeViewerProps {
   streamText?: string;
   onAskAiAboutFile: (file: ProjectFile) => void;
   onDownloadJar?: () => void;
+  onToggleCollapse?: () => void;
+  isCollapsed?: boolean;
 }
 
 export const CodeViewer: React.FC<CodeViewerProps> = ({
@@ -37,6 +42,8 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
   streamText = "",
   onAskAiAboutFile,
   onDownloadJar,
+  onToggleCollapse,
+  isCollapsed = false,
 }) => {
   const [copied, setCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -167,8 +174,32 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
     );
   };
 
-  // Render live stream typewriter
+  // Render live stream typewriter or creation loader
   const renderLiveStreamContent = () => {
+    // When streaming has just started and there is no text yet in the right preview
+    if (isStreaming && (!streamText || streamText.trim().length === 0)) {
+      return (
+        <PluginCreationLoader
+          text="FifaAI"
+          subtitle="Generowanie kodu pluginu przez silnik AI..."
+          size="large"
+          isStreaming={true}
+        />
+      );
+    }
+
+    // When there are no files and not streaming
+    if (!isStreaming && (!activeFile || files.length === 0)) {
+      return (
+        <PluginCreationLoader
+          text="FifaAI"
+          subtitle="Wybierz lub stwórz nowy plugin z asystentem AI..."
+          size="large"
+          isStreaming={false}
+        />
+      );
+    }
+
     const lines = streamText ? streamText.split("\n") : ["Inicjalizacja generowania kodu Java..."];
     return (
       <div className="space-y-3">
@@ -233,8 +264,8 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
 
   return (
     <div
-      className={`bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl flex flex-col transition-all ${
-        isFullscreen ? "fixed inset-4 z-50 shadow-2xl border-emerald-500/50" : "h-full min-h-[500px]"
+      className={`bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl flex flex-col transition-all min-h-0 ${
+        isFullscreen ? "fixed inset-4 z-50 shadow-2xl border-emerald-500/50" : "h-full"
       }`}
     >
       {/* Tab Navigation Bar */}
@@ -327,6 +358,17 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
+
+          {onToggleCollapse && !isFullscreen && (
+            <button
+              onClick={onToggleCollapse}
+              className="p-1.5 rounded-md bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 border border-slate-700/60 transition-colors flex items-center gap-1 cursor-pointer"
+              title="Zwiń panel z kodem"
+            >
+              <PanelRightClose className="w-4 h-4" />
+              <span className="text-[10px] font-medium hidden md:inline">Zwiń</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -349,7 +391,7 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
       )}
 
       {/* Code / Stream Content Box */}
-      <div ref={codeContainerRef} className="flex-1 overflow-auto p-3 bg-slate-950 relative">
+      <div ref={codeContainerRef} className="flex-1 overflow-auto p-3 bg-slate-950 relative min-h-0 custom-scrollbar">
         {viewMode === "live_stream" || isStreaming || !activeFile ? (
           renderLiveStreamContent()
         ) : (
